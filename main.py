@@ -42,7 +42,7 @@ if __name__ == '__main__':
     dth.replicate_table(orig_table, replica)
 
     # implementa o método de preencher os valores nan encontrados na exploratória com
-    # o 'wildcard value' de 0 em str seguindo o schema encontrado na tabela scr
+    # o 'wildcard value' de 0 seguindo o schema encontrado na tabela scr
     # Note que não foi possível encontrar um padrão mais adequado, portanto vou completar com 0
     dth.fill_nan(
         replica,
@@ -50,14 +50,15 @@ if __name__ == '__main__':
         '0'
     )
     
-    # Nesse bloco simplesmente armazenamos uma lista com o nome das colunas numericas a serem realiados calculos
-    df_col = []
-    prefix = params['num_cols']['prefix']
-    for i in params['num_cols']['sufix']:
-        df_col.append(prefix + i)
+    # Criam-se novas tabela para dar origem ao book de variáveis.
+    # Essas tabelas contém apenas chave_cpf e data_consulta e o consolidado do segmento
+    # Esse processo é interessante pois permite maior flexibilidade de testes unitários 
+    # e habilita reprocessamento de segmentos isolados caso necessidade
+    for nome_operacao in params['cod_modalidade']['operacoes']:
+        cd_op = params['cod_modalidade']['operacoes'][nome_operacao]
 
-    # Cria-se uma nova tabela para dar origem ao book de variáveis.
-    # Essa nova tabela contém apenas chave_cpf e data_consulta
-    new_tb_schema = "book_scr"
-    dth.create_new_table_schema(new_tb_schema)
-    dth.creating_bookscr_table(table_name=new_tb_schema, origin_table=replica)
+        dth.popula_dados_operacao(
+            cod_operacao=cd_op,
+            nome_operacao=nome_operacao,
+            base_origem=replica
+        )
