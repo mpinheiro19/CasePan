@@ -1,0 +1,4 @@
+/env
+__pycache__
+base_bacen.sqlite
+jupyterserverreqs.txt
