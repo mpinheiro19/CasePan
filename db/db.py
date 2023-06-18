@@ -24,6 +24,11 @@ class SQLiteSingleton:
             cls._instance = super(SQLiteSingleton, cls).__new__(cls)
             cls._instance.connection = sqlite3.connect(db_file)
         return cls._instance
+    
+    def __init__(self, db_file: str):
+
+        self.connection = sqlite3.connect(db_file)
+        self.cursor = self.connection.cursor()
 
 
     def read_dataframe(self, table_name: str) -> pd.DataFrame:
@@ -37,6 +42,6 @@ class SQLiteSingleton:
             A pandas DataFrame containing the queried data.
 
         """
-        query = f"SELECT * FROM {table_name}"
+        query = f"SELECT * FROM {table_name} LIMIT 10"
         df = pd.read_sql_query(query, self.connection)
         return df

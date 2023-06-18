@@ -1,0 +1,33 @@
+db_file :
+  path : db/base_bacen.sqlite
+  original_table : scr
+  replica_table : bacen_replica
+
+cols_to_normalize:
+  col : valor_credito_vencido_15_30_dia
+
+cod_modalidade:
+  operacoes: {
+    101 : adiantamento a depositantes,  
+    202 : crédito pessoal - com consignação em folha de pagamento,
+    203 : crédito pessoal - sem consignação em folha de pagamento,
+    204 : cartao rotativo vinculado a cartão de crédito,
+    210 : cartão de crédito - compra fat. parcelada ou saque financiado pela inst. emitente do cartão,
+    213 : cheque especial,
+    218 : cartão de crédito - não migrado,
+    406 : cartão de crédito - compra ou fat. parcelada pela inst. financeira emitente do cartão,
+    499 : outros financiamentos,
+    1304 : cartão de crédito - compra à vista e parcelado lojista,
+  }
+
+num_cols:
+  prefix : valor_credito_
+  sufix: [vencer_ate_30_dia, 
+    vencer_31_60_dia, 
+    vencer_61_90_dia, 
+    vencer_acima_90_dia,
+    vencido_15_30_dia, 
+    vencido_31_60_dia, 
+    vencido_61_90_dia, 
+    vencido_acima_90_dia
+    ]
