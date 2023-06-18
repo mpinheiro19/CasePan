@@ -10,7 +10,6 @@ with open('global_params.yaml', 'r') as file:
 dbfile = params['db_file']['path']
 db = SQLiteSingleton(dbfile)
 
-
 ## To Do:
 
 # ***OK*** 1- Normalização das features NaN 
@@ -56,3 +55,9 @@ if __name__ == '__main__':
     prefix = params['num_cols']['prefix']
     for i in params['num_cols']['sufix']:
         df_col.append(prefix + i)
+
+    # Cria-se uma nova tabela para dar origem ao book de variáveis.
+    # Essa nova tabela contém apenas chave_cpf e data_consulta
+    new_tb_schema = "book_scr"
+    dth.create_new_table_schema(new_tb_schema)
+    dth.creating_bookscr_table(table_name=new_tb_schema, origin_table=replica)

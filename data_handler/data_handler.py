@@ -45,7 +45,36 @@ class DataHandler:
             table_name: The name of the table.
             column: The name of the column containing missing values.
             value: The value to fill the missing values with.
-
         """
         query = f"UPDATE {table_name} SET {column} = {value} WHERE {column} IS 'nan'"
         self.execute_query(query)
+    
+    def create_new_table_schema(self, table_name : str) -> None:
+        """
+        Cria-se uma nova tabela com as chaves únicas do output do book de variaveis
+
+        Args:
+            table_name: Nome da nova tabelatabela.
+        """
+        query = f"""CREATE TABLE IF NOT EXISTS {table_name}(
+        chave_cpf varchar NOT NULL,
+        data_consulta varchar NOT NULL
+        )"""
+        self.execute_query(query)
+
+    def creating_bookscr_table(self, table_name : str, origin_table : str):
+        """
+        Inserindo valores no book do scr
+
+        Args:
+            origin_table : Tabela de origem do dado
+        """
+        query = f"""
+            insert into {table_name} (chave_cpf, data_consulta)
+                select chave_cpf, data_consulta_dado_bacen
+                from {origin_table}
+                group by chave_cpf, data_consulta_dado_bacen
+        """
+        self.execute_query(query)
+
+    
