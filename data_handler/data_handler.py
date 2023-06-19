@@ -48,34 +48,6 @@ class DataHandler:
         """
         query = f"UPDATE {table_name} SET {column} = {value} WHERE {column} IS 'nan'"
         self.execute_query(query)
-    
-    def create_new_table_schema(self, table_name : str, base_origem) -> None:
-        """
-        Cria-se uma nova tabela com as chaves únicas do output do book de variaveis
-
-        Args:
-            table_name: Nome da nova tabela.
-        """
-        query = f"""CREATE TABLE IF NOT EXISTS {table_name} as
-        select distinct chave_cpf, data_consulta_dado_bacen, codigo_modalidade_operacao
-        from {base_origem}
-        """
-        self.execute_query(query)
-
-    # def creating_bookscr_table(self, table_name : str, origin_table : str):
-    #     """
-    #     Inserindo valores no book do scr
-
-    #     Args:
-    #         origin_table : Tabela de origem do dado
-    #     """
-    #     query = f"""
-    #         insert into {table_name} (chave_cpf, data_consulta, codigo_modalidade_operacao)
-    #             select chave_cpf, data_consulta_dado_bacen, codigo_modalidade_operacao
-    #             from {origin_table}
-    #             group by chave_cpf, data_consulta_dado_bacen,codigo_modalidade_operacao
-    #     """
-    #     self.execute_query(query)
 
     def popula_dados_operacao(self, cod_operacao, nome_operacao, base_origem):
         """
@@ -123,5 +95,47 @@ class DataHandler:
             on a.chave_cpf = b.chave_cpf 
                 and a.data_consulta_dado_bacen = b.data_consulta_dado_bacen
                 and b.codigo_modalidade_operacao = a.codigo_modalidade_operacao;
+        """
+        self.execute_query(query)
+
+    def cria_book_scr_table_keys(self, base_origem) -> None:
+        """
+        Método responsável por extrair as chaves únicas de cpf e data de consulta da base origem.
+        Esse processo é necessário apenas para dar a carga.
+        To do: 
+         - Implementar caso onde esse step não é necessário pois a carga já foi efetuada
+         - Pensar em particionamento adequado para essa tabela porque existe um incremento mensal
+         - Uma vez particionada, implementar método para cálculo do diff entre as tabelas
+
+        Args:
+            base_origem : nome da tabela fonte da verdade da informação do scr.
+        """
+        query = f"""
+        create table if not exists book_scr as
+            select distinct chave_cpf, data_consulta_dado_bacen
+            from {base_origem};    
+        """
+        self.execute_query(query)
+
+    def alter_table(self, table_name, column):
+        query =f"""ALTER TABLE {table_name} ADD COLUMN {column} bigint"""
+        self.execute_query(query)
+
+    def popula_dados_book(self, nome_operacao, coluna, base_origem) -> None:
+        """
+        Método responsável por inserir as informações das operações na tabela de book.
+
+        Args:
+            nome_operacao : nome da tabela referente à operação.
+            base_origem : base original
+        """
+        query = f"""
+            INSERT INTO {base_origem} ({coluna})
+            SELECT
+                b.{coluna}
+            from {base_origem} a
+            join {nome_operacao} b
+            on a.chave_cpf = b.chave_cpf
+            and a.data_consulta_dado_bacen = b.data_consulta_dado_bacen
         """
         self.execute_query(query)

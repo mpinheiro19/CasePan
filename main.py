@@ -24,7 +24,7 @@ db = SQLiteSingleton(dbfile)
     # 3.5 - Perc Saldo vencido acima 90d
     # 4.6 - Perc saldo a vencer acima de 90d
 # 4- PosProcess
-#     4.1 - Garantir que cada linha é um CPF/dataconsulta
+#     *** OK *** 4.1 - Garantir que cada linha é um CPF/dataconsulta
 #     4.2 - método para exportar
 # 5- Recomendações extras de next steps
 
@@ -45,9 +45,9 @@ if __name__ == '__main__':
     # o 'wildcard value' de 0 seguindo o schema encontrado na tabela scr
     # Note que não foi possível encontrar um padrão mais adequado, portanto vou completar com 0
     dth.fill_nan(
-        replica,
-        'valor_credito_vencido_15_30_dia',
-        '0'
+        table_name=replica,
+        column=params['cols_to_normalize'],
+        value='0'
     )
     
     # Criam-se novas tabela para dar origem ao book de variáveis.
@@ -62,3 +62,22 @@ if __name__ == '__main__':
             nome_operacao=nome_operacao,
             base_origem=replica
         )
+    
+    # Cria-se a base da tabela para o book de variáveis
+    dth.cria_book_scr_table_keys(replica)
+
+
+
+
+########### Arrumar esse bloco lógico para que ele popule os dados da maneira correta. Não estou conseguindo alimentar os dados com os filtros
+
+    # Gerando o procedimento para popular os produtos na tabela de chave unica
+    for nome_operacao in params['cod_modalidade']['operacoes']:
+        for var in params['num_cols']:
+            col = nome_operacao+"_"+var
+            dth.alter_table(table_name='book_scr', column=col)
+
+    for nome_operacao in params['cod_modalidade']['operacoes']:
+        for var in params['num_cols']:
+            col = nome_operacao+"_"+var
+            dth.popula_dados_book(nome_operacao,coluna=col, base_origem='book_scr')

@@ -3,8 +3,7 @@ db_file :
   original_table : scr
   replica_table : bacen_replica
 
-cols_to_normalize:
-  col : valor_credito_vencido_15_30_dia
+cols_to_normalize : valor_credito_vencido_15_30_dia
 
 cod_modalidade:
   operacoes: { 
@@ -16,14 +15,11 @@ cod_modalidade:
     cartao_transactor : "('1304')",
   }
 
-num_cols:
-  prefix : valor_credito_
-  sufix: [vencer_ate_30_dia, 
-    vencer_31_60_dia, 
-    vencer_61_90_dia, 
-    vencer_acima_90_dia,
-    vencido_15_30_dia, 
-    vencido_31_60_dia, 
-    vencido_61_90_dia, 
-    vencido_acima_90_dia
-    ]
+num_cols : [valor_credito_vencer_ate_30_dia, 
+  valor_credito_vencer_31_60_dia, 
+  valor_credito_vencer_61_90_dia, 
+  valor_credito_vencer_acima_90_dia,
+  valor_credito_vencido_15_30_dia, 
+  valor_credito_vencido_31_60_dia, 
+  valor_credito_vencido_61_90_dia, 
+  valor_credito_vencido_acima_90_dia]
