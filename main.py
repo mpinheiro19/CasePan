@@ -10,23 +10,6 @@ with open('global_params.yaml', 'r') as file:
 dbfile = params['db_file']['path']
 db = SQLiteSingleton(dbfile)
 
-## To Do:
-
-# ***OK*** 1- Normalização das features NaN 
-# ***OK*** 2- Criação da classe DataHandler
-# 3- Feature Eng
-    # 3.0 - Normalizar a tabela (chave unica é cpf,mes_consulta,cod_modalidade)
-    # 3.1.1 - Criação do saldo por modadalidade (colunarizacao da feat)
-    # 3.1.2 - Criacao do saldo em janelas (requisito)
-    # 3.2 - Possui Saldo Vencido
-    # 3.3 - Saldo total a vencer
-    # 3.4 - Saldo total vencido
-    # 3.5 - Perc Saldo vencido acima 90d
-    # 4.6 - Perc saldo a vencer acima de 90d
-# 4- PosProcess
-#     *** OK *** 4.1 - Garantir que cada linha é um CPF/dataconsulta
-#     4.2 - método para exportar
-# 5- Recomendações extras de next steps
 
 if __name__ == '__main__':
 
@@ -34,7 +17,7 @@ if __name__ == '__main__':
     dth = DataHandler(db)
 
     # Replica a tabela original para melhor track de modificações
-    # (set opcional, feito apenas para manter histórico de modificações em
+    # (passo opcional, feito apenas para manter histórico de modificações em
     # ambientes distintos!)
     orig_table = params['db_file']['original_table']
     replica = params['db_file']['replica_table']
@@ -50,7 +33,11 @@ if __name__ == '__main__':
         value='0'
     )
     
-    # Criam-se novas tabela para dar origem ao book de variáveis.
+    # Cria-se a base da tabela para o book de variáveis
+    # essa tabela contém registros únicos para popular com os dados
+    dth.cria_book_scr_table_keys(replica)
+
+    # Criando novas tabela para dar origem ao book de variáveis.
     # Essas tabelas contém apenas chave_cpf e data_consulta e o consolidado do segmento
     # Esse processo é interessante pois permite maior flexibilidade de testes unitários 
     # e habilita reprocessamento de segmentos isolados caso necessidade
@@ -62,22 +49,68 @@ if __name__ == '__main__':
             nome_operacao=nome_operacao,
             base_origem=replica
         )
+
+    # Gerando o procedimento para gerar uma query capaz de unir todas as tabelas produzidas até entãoo
+    # query_book_final é a query que será populada proceduralmente
+    # o primeiro loop aninhado é para gerar as colunas da cláusula select
+    # o segundo loop for simples é pra gerar os joins
+    # To do: Repensar a query focando performance
+    query_book_final = f"""SELECT 
+    book_scr.chave_cpf
+    ,book_scr.data_consulta_dado_bacen
+    """
+    for nome_operacao in params['cod_modalidade']['operacoes']:
+        for var in params['num_cols']:
+             join_select = f""",COALESCE({nome_operacao}_{var},0) as {nome_operacao}_{var}
+             """
+             query_book_final = f"{query_book_final} {join_select}"
+    query_book_final = f"{query_book_final} from book_scr"
+
+    for nome_operacao in params['cod_modalidade']['operacoes']:
+        query_book_final =  dth._generate_query_procedure(nome_operacao, query_book_final)
     
-    # Cria-se a base da tabela para o book de variáveis
-    dth.cria_book_scr_table_keys(replica)
+    # A query final pode ser lida via print statement abaixo
+    # print(query_book_final)
 
+    # Cria uma nova tabela com os dados agregados via join
+    dth.escreve_tabela(query_book_final,'book_scr_final')
 
-
-
-########### Arrumar esse bloco lógico para que ele popule os dados da maneira correta. Não estou conseguindo alimentar os dados com os filtros
-
-    # Gerando o procedimento para popular os produtos na tabela de chave unica
+    # Criação de variáveis extras
+    # gerando de maneira procedural a query
+    query = """select 
+        book.* 
+        """
     for nome_operacao in params['cod_modalidade']['operacoes']:
-        for var in params['num_cols']:
-            col = nome_operacao+"_"+var
-            dth.alter_table(table_name='book_scr', column=col)
 
-    for nome_operacao in params['cod_modalidade']['operacoes']:
-        for var in params['num_cols']:
-            col = nome_operacao+"_"+var
-            dth.popula_dados_book(nome_operacao,coluna=col, base_origem='book_scr')
+            join_query = f""",{nome_operacao}_valor_credito_vencer_ate_30_dia
+                + {nome_operacao}_valor_credito_vencer_31_60_dia 
+            as {nome_operacao}_valor_credito_vencer_ate_60_dia
+            ,{nome_operacao}_valor_credito_vencer_ate_30_dia
+                + {nome_operacao}_valor_credito_vencer_31_60_dia 
+                + {nome_operacao}_valor_credito_vencer_61_90_dia 
+            as {nome_operacao}_valor_credito_vencer_ate_90_dia
+            ,{nome_operacao}_valor_credito_vencer_ate_30_dia
+                + {nome_operacao}_valor_credito_vencer_31_60_dia 
+                + {nome_operacao}_valor_credito_vencer_61_90_dia
+                + {nome_operacao}_valor_credito_vencer_acima_90_dia 
+            as {nome_operacao}_valor_credito_vencer_total_dia
+            ,{nome_operacao}_valor_credito_vencido_15_30_dia
+                + {nome_operacao}_valor_credito_vencido_31_60_dia 
+            as {nome_operacao}_valor_credito_vencido_ate_60_dia
+            ,{nome_operacao}_valor_credito_vencido_15_30_dia
+                + {nome_operacao}_valor_credito_vencido_31_60_dia 
+                + {nome_operacao}_valor_credito_vencido_61_90_dia 
+            as {nome_operacao}_valor_credito_vencido_ate_90_dia
+            ,{nome_operacao}_valor_credito_vencido_15_30_dia
+                + {nome_operacao}_valor_credito_vencido_31_60_dia 
+                + {nome_operacao}_valor_credito_vencido_61_90_dia
+                + {nome_operacao}_valor_credito_vencido_acima_90_dia  
+            as {nome_operacao}_valor_credito_vencido_total_dia        
+            """
+
+            query = f"{query} {join_query}"
+    
+    query_extra_vars = f"{query} FROM BOOK_SCR_FINAL as book"
+    
+    # print(query)
+    dth.escreve_tabela(query_extra_vars, 'feat_store_scr')

@@ -90,12 +90,11 @@ class DataHandler:
                 b.{nome_operacao}_valor_credito_vencido_31_60_dia,
                 b.{nome_operacao}_valor_credito_vencido_61_90_dia,
                 b.{nome_operacao}_valor_credito_vencido_acima_90_dia
-            from bacen_replica a
-            join operacao as b
+            from  book_scr a
+            left join operacao as b
             on a.chave_cpf = b.chave_cpf 
                 and a.data_consulta_dado_bacen = b.data_consulta_dado_bacen
-                and b.codigo_modalidade_operacao = a.codigo_modalidade_operacao;
-        """
+            """
         self.execute_query(query)
 
     def cria_book_scr_table_keys(self, base_origem) -> None:
@@ -118,24 +117,30 @@ class DataHandler:
         self.execute_query(query)
 
     def alter_table(self, table_name, column):
-        query =f"""ALTER TABLE {table_name} ADD COLUMN {column} bigint"""
+        query =f"""ALTER TABLE {table_name} ADD COLUMN {column} bigint NULL"""
         self.execute_query(query)
 
-    def popula_dados_book(self, nome_operacao, coluna, base_origem) -> None:
+    def _generate_query_procedure(self, nome_operacao, left_query):
+        join_query = f"""JOIN  {nome_operacao} 
+        ON book_scr.chave_cpf = {nome_operacao}.chave_cpf
+        AND book_scr.data_consulta_dado_bacen = {nome_operacao}.data_consulta_dado_bacen
         """
-        Método responsável por inserir as informações das operações na tabela de book.
+        left_query = f"{left_query} {join_query}"
+        return left_query
+    
+    def escreve_tabela(self, select_query, table_name) -> None:
+        """
+        Método responsável por dar carga da tabela final via select statement gerado
+        proceduralmente
+        To do: 
+         - refatorar processo de geração da informação de modo a
+            segmentar em camadas bronze/silver/gold com dados cada vez mais tratados
 
         Args:
-            nome_operacao : nome da tabela referente à operação.
-            base_origem : base original
+            select_query : Select statement gerado de forma procedural.
         """
         query = f"""
-            INSERT INTO {base_origem} ({coluna})
-            SELECT
-                b.{coluna}
-            from {base_origem} a
-            join {nome_operacao} b
-            on a.chave_cpf = b.chave_cpf
-            and a.data_consulta_dado_bacen = b.data_consulta_dado_bacen
+        create table if not exists {table_name} as
+        {select_query};   
         """
         self.execute_query(query)
